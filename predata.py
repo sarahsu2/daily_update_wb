@@ -1,6 +1,6 @@
 # import codecs
 # import os
-# os.chdir(os.path.abspath('/Users/xuyujie/Desktop'))
+# os.chdir(os.path.abspath('/Users/path'))
 import pandas as pd
 
 # df = pd.DataFrame([],columns = ["taxPersonCode","companyName","unifiedCreditCodeZero","unifiedCreditCodeNotZero"])
@@ -11,12 +11,14 @@ import pandas as pd
 #     df.loc[len(df)] = {"taxPersonCode": element[1].strip(), "companyName": element[2].strip(), "unifiedCreditCodeZero": element[3].strip(),"unifiedCreditCodeNotZero":element[4].strip()}
 # # df.to_csv("ori1.csv")
 
-df = pd.read_csv('/Users/xuyujie/Desktop/ori1.csv')
+df = pd.read_csv('/path/ori1.csv')
 
 import re
 import CheckCode
 df["pretaxPersonCode"] = ''
 for i in range(len(df)):
+    df.loc[i, "taxPersonCode"] = df.loc[i]["taxPersonCode"].upper()
+    print(i)
     # 号码由双括号扩起，第一位为"("
     if df.loc[i]["taxPersonCode"][0] == "(":
         df.loc[i, "pretaxPersonCode"] = re.findall('\((.*?)\)', df.loc[i]["taxPersonCode"])
@@ -45,7 +47,7 @@ for i in range(len(df)):
 
     # 号码没有括号扩起，第一位为数字
     elif df.loc[i]["taxPersonCode"][0] != "(":
-        str_taxPersonCode = ''.join(str(e) for e in df.loc[0]["taxPersonCode"])
+        str_taxPersonCode = ''.join(str(e) for e in df.loc[i]["taxPersonCode"])
         # 如果是15位，应该可以直接加91，再作两种运算
         if len(str_taxPersonCode) == 15:
             df.loc[i, "unifiedCreditCodeZero"] = CheckCode.Test().CheckCode(str_taxPersonCode, 2)
@@ -94,4 +96,4 @@ for i in range(len(df)):
         df.loc[i, "unifiedCreditCodeZero"] = None
         df.loc[i, "unifiedCreditCodeNotZero"] = None
 
-df.to_csv("/Users/xuyujie/Desktop/result.csv")
+df.to_csv("/path/result.csv")
