@@ -1,7 +1,9 @@
 # import codecs
 # import os
-# os.chdir(os.path.abspath('/Users/path'))
+# os.chdir(os.path.abspath('/Users/xuyujie/Desktop'))
 import pandas as pd
+
+# connect database, get data as .txt file then parse it to .csv file
 
 # df = pd.DataFrame([],columns = ["taxPersonCode","companyName","unifiedCreditCodeZero","unifiedCreditCodeNotZero"])
 # file = codecs.open('origindata.txt','r',encoding='utf8')
@@ -11,7 +13,7 @@ import pandas as pd
 #     df.loc[len(df)] = {"taxPersonCode": element[1].strip(), "companyName": element[2].strip(), "unifiedCreditCodeZero": element[3].strip(),"unifiedCreditCodeNotZero":element[4].strip()}
 # # df.to_csv("ori1.csv")
 
-df = pd.read_csv('/path/ori1.csv')
+df = pd.read_csv('/Users/xuyujie/Desktop/ori2.csv')
 
 import re
 import CheckCode
@@ -36,8 +38,8 @@ for i in range(len(df)):
                 df.loc[i, "unifiedCreditCodeNotZero"] = CheckCode.Test().CheckCode(str_pretaxPersonCode[2:17], 1)
                 # check str_pretaxPersonCode[17] == CheckCode.Test().CheckCode(str_pretaxPersonCode[2:17], 1 or 2) or not
             else:
-                df.loc[i, "unifiedCreditCodeZero"] = None
-                df.loc[i, "unifiedCreditCodeNotZero"] = None
+                df.loc[i, "unifiedCreditCodeZero"] = "NULL"
+                df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
         # 如果是16位，取1-15位作两种计算（还可以与第16位进行比较）
         elif len(str_pretaxPersonCode) == 16:
@@ -61,13 +63,13 @@ for i in range(len(df)):
 
         # 出现17位的数，以14开头，应该是错误数据，保留Null
         elif len(str_taxPersonCode) == 17:
-            df.loc[i, "unifiedCreditCodeZero"] = None
-            df.loc[i, "unifiedCreditCodeNotZero"] = None
+            df.loc[i, "unifiedCreditCodeZero"] = "NULL"
+            df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
         # 出现19位的数，以14开头，应该是错误数据，保留Null
         elif len(str_taxPersonCode) == 19:
-            df.loc[i, "unifiedCreditCodeZero"] = None
-            df.loc[i, "unifiedCreditCodeNotZero"] = None
+            df.loc[i, "unifiedCreditCodeZero"] = "NULL"
+            df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
         # 出现18位的数，先判断前两位是否是91，是则取3-17位作两种计算（还可以与第18位进行比较验算）
         elif len(str_taxPersonCode) == 18:
@@ -76,24 +78,32 @@ for i in range(len(df)):
                 df.loc[i, "unifiedCreditCodeNotZero"] = CheckCode.Test().CheckCode(str_taxPersonCode[2:17], 1)
                 # check str_taxPersonCode[17] == CheckCode.Test().CheckCode(str_taxPersonCode[2:17], 1 or 2) or not
             else:
-                df.loc[i, "unifiedCreditCodeZero"] = None
-                df.loc[i, "unifiedCreditCodeNotZero"] = None
+                df.loc[i, "unifiedCreditCodeZero"] = "NULL"
+                df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
         # 出现30位的数，格式为"前18位(11位)"，括号前的78位为00，括号后的78位为区县级
         elif len(str_taxPersonCode) == 30:
-            # 1-17位计算市级校验位（还可以与第18位进行比较验算），20-30位替换3-13位计算区县级校验位
-            df.loc[i, "unifiedCreditCodeZero"] = CheckCode.Test().CheckCode(str_taxPersonCode[0:17], 2)
-            # check str_taxPersonCode[17] == CheckCode.Test().CheckCode(str_taxPersonCode[0:17], 1 or 2) or not
+            if str_taxPersonCode[0:2] == '91':
+                # 1-17位计算市级校验位（还可以与第18位进行比较验算），20-30位替换3-13位计算区县级校验位
+                df.loc[i, "unifiedCreditCodeZero"] = CheckCode.Test().CheckCode(str_taxPersonCode[2:17], 2)
+                # check str_taxPersonCode[17] == CheckCode.Test().CheckCode(str_taxPersonCode[2:17], 1 or 2) or not
 
-            # 20-30位替换3-13位计算区县级校验位，1-17位计算校验位（还可以与第18位进行比较验算）
-            liststr_taxPC = list(str_taxPersonCode)
-            liststr_taxPC[2:13] = liststr_taxPC[19:30]
-            joinliststr_taxPC = "".join(liststr_taxPC)
-            df.loc[i, "unifiedCreditCodeNotZero"] = CheckCode.Test().CheckCode(joinliststr_taxPC[0:17], 1)
-            # check str_taxPersonCode[17] == CheckCode.Test().CheckCode(joinliststr_taxPC[0:17], 1 or 2) or not
+                # 20-30位替换3-13位计算区县级校验位，1-17位计算校验位（还可以与第18位进行比较验算）
+                liststr_taxPC = list(str_taxPersonCode)
+                liststr_taxPC[2:13] = liststr_taxPC[19:30]
+                joinliststr_taxPC = "".join(liststr_taxPC)
+                df.loc[i, "unifiedCreditCodeNotZero"] = CheckCode.Test().CheckCode(joinliststr_taxPC[2:17], 1)
+                # check str_taxPersonCode[17] == CheckCode.Test().CheckCode(joinliststr_taxPC[2:17], 1 or 2) or not
+            else:
+                df.loc[i, "unifiedCreditCodeZero"] = "NULL"
+                df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
     else:
-        df.loc[i, "unifiedCreditCodeZero"] = None
-        df.loc[i, "unifiedCreditCodeNotZero"] = None
+        df.loc[i, "unifiedCreditCodeZero"] = "NULL"
+        df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
-df.to_csv("/path/result.csv")
+    print(i)
+
+# df.to_csv("/Users/xuyujie/Desktop/result.csv")
+df1 = df[['taxPersonCode','companyName','unifiedCreditCodeZero','unifiedCreditCodeNotZero']]
+df1.to_csv("/Users/xuyujie/Desktop/result2.csv", index = False, header = False)
