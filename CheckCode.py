@@ -59,7 +59,7 @@ class Test(object):
             merged2 = copy.deepcopy(merged)
             # if ZhiXiaShi
             # CheckCode2: make 678 digit 000
-            if merged2[2:5] == '110' or '120' or '310' or '500':
+            if merged2[2:5] == [1,1,0] or merged2[2:5] == [1,2,0] or merged2[2:5] == [3,1,0] or merged2[2:5] == [5,0,0]:
                 merged2[5:8] = [0,0,0]
 
             # if not ZhiXiaShi
