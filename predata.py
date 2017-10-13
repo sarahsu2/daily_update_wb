@@ -1,10 +1,30 @@
 # import codecs
 # import os
-# os.chdir(os.path.abspath('/Users/xuyujie/Desktop'))
+# os.chdir(os.path.abspath('/Users/path'))
 import pandas as pd
+from sshtunnel import SSHTunnelForwarder
+import pymysql
+
+server = SSHTunnelForwarder(
+    'xxx.xx.xxx.xx',
+    ssh_username='xxxxxx',
+    ssh_password='xxxxxx',
+    remote_bind_address=('127.0.0.1', 3306)
+)
+server.start()
+
+# 更新数据库
+# 动态连接&识别新增数据并更新数据库（还没做）
+conn = pymysql.connect(
+    host='127.0.0.1',
+    port=server.local_bind_port,
+    user='root',
+    password='xxxxxx',
+    db='xxxxxx'
+)
+cur = conn.cursor()
 
 # connect database, get data as .txt file then parse it to .csv file
-
 # df = pd.DataFrame([],columns = ["taxPersonCode","companyName","unifiedCreditCodeZero","unifiedCreditCodeNotZero"])
 # file = codecs.open('origindata.txt','r',encoding='utf8')
 # lines = file.readlines()
@@ -13,7 +33,7 @@ import pandas as pd
 #     df.loc[len(df)] = {"taxPersonCode": element[1].strip(), "companyName": element[2].strip(), "unifiedCreditCodeZero": element[3].strip(),"unifiedCreditCodeNotZero":element[4].strip()}
 # # df.to_csv("ori1.csv")
 
-df = pd.read_csv('/Users/xuyujie/Desktop/ori2.csv')
+df = pd.read_csv('/Users/path/ori2.csv')
 
 import re
 import CheckCode
@@ -102,8 +122,19 @@ for i in range(len(df)):
         df.loc[i, "unifiedCreditCodeZero"] = "NULL"
         df.loc[i, "unifiedCreditCodeNotZero"] = "NULL"
 
+    # update database
+    testsql = """UPDATE TaxationCode SET unifiedCreditCodeNotZero = %s, unifiedCreditCodeZero = %s WHERE taxPersonCode = %s"""
+    data = ((df.loc[i]["unifiedCreditCodeNotZero"]), (df.loc[i]["unifiedCreditCodeZero"]), (df.loc[i]["taxPersonCode"]))
+    cur.execute(testsql, data)
+    conn.commit()
+
     print(i)
 
-# df.to_csv("/Users/xuyujie/Desktop/result.csv")
 df1 = df[['taxPersonCode','companyName','unifiedCreditCodeZero','unifiedCreditCodeNotZero']]
-df1.to_csv("/Users/xuyujie/Desktop/result2.csv", index = False, header = False)
+df1.to_csv("/Users/path/result3.csv", index = False, header = False)
+
+cur.close()
+# 关闭数据库连接
+conn.close()
+# Make sure to call server.stop() when you want to disconnect
+server.stop()
