@@ -27,7 +27,7 @@ def get_webkey(url):
         return 0
 
 sql_get = """
-select * from TaxationCode
+SELECT * FROM TaxationCode
 """
 
 # 在数据库里新建表（不要主键）：统一社会信用编码，公司名称（汉字），地区编码（第3-8位），该公司数据是否拿到（加一个flag initial －1）
@@ -37,19 +37,95 @@ CREATE TABLE CheckedTaxationCode (
 companyName CHAR(50),
 creditCode CHAR(18),
 zipCode CHAR(6),
-gotCompanyInfo CHAR(2))
+gotCompanyInfo CHAR(2),
+code1 CHAR(18),
+code2 CHAR(18),
+mark CHAR(1))
 DEFAULT CHARSET=utf8mb4
 """
 
 sql_insert = """
-INSERT INTO CheckedTaxationCode(companyName, creditCode, zipCode, gotCompanyInfo)
-       VALUES ('%s', '%s', '%s', '%s' )"""
+INSERT INTO CheckedTaxationCode(companyName, creditCode, zipCode, gotCompanyInfo, code1, code2, mark)
+       VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')"""
+
+sql_getMark = """
+SELECT * FROM CheckedTaxationCode WHERE 'mark' = 1
+"""
+
+def process_data(data):
+    for i in range(len(data)):
+        # print(i)
+        taxPersonCode = data[i][0]
+        companyName = data[i][1]
+        unifiedCreditCodeZero = data[i][2]
+        unifiedCreditCodeNotZero = data[i][3]
+        # print((data[i][0]))
+        try:
+            # 如果第一个成功则跳过第二个，直接返回第一个；如果第一个不成功则换第二个keyword，第二个成功则返回第二个；如果第二个也不成功则返回Null
+            # 保存统一社会信用编码&公司名称&地区编码（第3-8位）
+            # num1 = '\'%s\''%unifiedCreditCodeZero
+            num1 = unifiedCreditCodeZero
+            num2 = unifiedCreditCodeNotZero
+            newtable = ['-1']
+            name = companyName
+            newtable.append(name)
+
+            # TODO: 跑50条休息5秒
+            if i % 50 == 0:
+                time.sleep(5)
+
+            if num1 != 'NULL':
+                # print("True")
+                url1 = get_url(num1)
+                url2 = get_url(num2)
+                get_webkey(url1)
+                if get_webkey(url1) != 0:
+                    checkcode = num1
+                    zipCode = num1[2:8]
+                    # print("url1 != 0")
+                elif get_webkey(url1) == 0:
+                    if get_webkey(url2) != 0:
+                        checkcode = num2
+                        zipCode = num2[2:8]
+                        # print("url2 != 0")
+                    elif get_webkey(url2) == 0:
+                        checkcode = 'NULL'
+                        zipCode = 'NULL'
+                        # print("url2 == 0")
+            elif num1 == 'NULL':
+                checkcode = 'NULL'
+                zipCode = 'NULL'
+                # print("url1 == NULL")
+
+            newtable.append(checkcode)
+            newtable.append(zipCode)
+            newtable.append(num1)
+            newtable.append(num2)
+            newtable.append('0')
+            # print(newtable)
+
+            try:
+                # 执行sql语句
+                cur.execute(sql_insert%(newtable[1], newtable[2], newtable[3], newtable[0], newtable[4], newtable[5], newtable[6]))
+                # 执行数据库操作每步都要数据库db.commit()以后才能操作
+                # 提交到数据库执行
+                conn.commit()
+                print(i)
+            except:
+                # Rollback in case there is any error
+                conn.rollback()
+                print('Fail to insert row ', i)
+        except:
+            # print('Fail to reach row', i)
+            cur.execute(sql_insert%(companyName, 'NULL', 'NULL', '-1', unifiedCreditCodeZero, unifiedCreditCodeNotZero, '1'))
+            conn.commit()
+            pass
 
 if __name__ == '__main__':
     server = SSHTunnelForwarder(
         'xxx.xx.xxx.xx',
-        ssh_username='xxx',
-        ssh_password='xxx',
+        ssh_username='xx',
+        ssh_password='xx',
         remote_bind_address=('127.0.0.1', 3306)
     )
     server.start()
@@ -57,70 +133,38 @@ if __name__ == '__main__':
         host='127.0.0.1',
         port=server.local_bind_port,
         user='root',
-        password='xxx',
-        db='xxx'
+        password='xx',
+        db='xx',
+        charset = 'utf8mb4'
     )
     cur = conn.cursor()
 
-    cur.execute("DROP TABLE IF EXISTS CheckedTaxationCode")
-    try:
-        cur.execute(sql_create)
-    except:
-        print('Fail to create table CheckedTaxationCode!')
-    # 需不需要提交到数据库执行？
-    # conn.commit()
-
+    # cur.execute("DROP TABLE IF EXISTS CheckedTaxationCode")
     # try:
+    #     cur.execute(sql_create)
+    # except:
+    #     print('Fail to create table CheckedTaxationCode!')
+    # # 需不需要提交到数据库执行？
+    # # conn.commit()
+
     cur.execute(sql_get)
     data = cur.fetchall()
-    for i in range(len(data)):
-        taxPersonCode = data[i][0]
-        companyName = data[i][1]
-        unifiedCreditCodeZero = data[i][2]
-        unifiedCreditCodeNotZero = data[0][3]
+    # print(len(data))
+    # for i in range(20):
+    process_data_after_interruption(data)
 
-        # 如果第一个成功则跳过第二个，直接返回第一个；如果第一个不成功则换第二个keyword，第二个成功则返回第二个；如果第二个也不成功则返回Null
-        # 保存统一社会信用编码&公司名称&地区编码（第3-8位）
-        # num1 = '\'%s\''%unifiedCreditCodeZero
-        num1 = str(unifiedCreditCodeZero)
-        num2 = unifiedCreditCodeNotZero
-        newtable = ['-1']
-        name = companyName
-        newtable.append(name)
-        if num1 != 'NULL':
-            url1 = get_url(num1)
-            url2 = get_url(num2)
-            if get_webkey(url1) != 0:
-                checkcode = num1
-                zipCode = num1[2:8]
-            elif get_webkey(url1) == 0:
-                if get_webkey(url2) != 0:
-                    checkcode = num2
-                    zipCode = num2[2:8]
-                elif get_webkey(url2) == 0:
-                    checkcode = 'NULL'
-                    zipCode = 'NULL'
-        else:
-            checkcode = 'NULL'
-            zipCode = 'NULL'
-        newtable.append(checkcode)
-        newtable.append(zipCode)
-        try:
-            # 执行sql语句
-            cur.execute(sql_insert%(newtable[1], newtable[2], newtable[3], newtable[0]))
-            # 执行数据库操作每步都要数据库db.commit()以后才能操作
-            # 提交到数据库执行
-            conn.commit()
-            print(i)
-        except:
-            # Rollback in case there is any error
-            conn.rollback()
-            print('Fail to insert row ', i)
-    # except:
-    #     print('Fail to reach the next row!')
+    # TODO: 循环检查CheckedTaxationCode里mark为1的，重新跑
+    # read CheckedTaxationCode, find all mark == 1, re-run
+    while True:
+        cur.execute(sql_getMark)
+        data = cur.fetchall()
+        process_data(data)
+        if len(data) == 0:
+            print("Done!")
+            break
 
     cur.close()
     # 关闭数据库连接
     conn.close()
     # Make sure to call server.stop() when you want to disconnect
-    server.stop()
+    server.stop(
