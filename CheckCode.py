@@ -76,6 +76,20 @@ class Test(object):
             newmerged2 = ''.join(str(e) for e in merged2)
             # print("newmerged2", newmerged2)
             return newmerged2
+                
+        elif mode == 3:
+            try:
+                merged3 = copy.deepcopy(merged)
+                merged3[4:8] = [0, 0, 0, 0]
+                cixwi = list(map(lambda x: x[0] * x[1], zip(wi, merged)))
+                sumup = sum(cixwi[0:len(cixwi)])
+                rest = 31 - sumup % 31
+                merged3.append(rest)
+                self.back2origin(merged3)
+                newmerged3 = ''.join(str(e) for e in merged3)
+                return newmerged3
+            except:
+                return error
 
 # if __name__ == '__main__':
 #     print (Test().CheckCode("22012266874988X", 1))
