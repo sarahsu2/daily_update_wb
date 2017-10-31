@@ -1,10 +1,3 @@
-import requests
-import json
-import pymysql
-from sshtunnel import SSHTunnelForwarder
-import time
-
-# url：只需替换keyword（1 如果为Null则跳过 2 如果第一个成功则跳过第二个）
 def get_url(keyword):
     url_pre = 'http://www.creditchina.gov.cn/api/credit_info_search?keyword='
     url_pro = '&templateId=&page=1&pageSize=10'
@@ -15,8 +8,22 @@ def get_url(keyword):
 
 # 如果提取到网页上特定字段："'results' = []" 则为不成功
 def get_webkey(url):
+    # # url = 'http://www.creditchina.gov.cn/search_all#keyword=912104020811011528&searchtype=0&templateId=&creditType=&areas=&objectType=2&page=1'
+    # req = urllib.request.Request(url)
+    # # print(req)
+    # data = urllib.request.urlopen(req)
+    # # print(data)
+    # bs = data.read().decode('utf-8')
+    # soup = BeautifulSoup(bs, 'lxml')
+    # # check = soup.find_all("div", {"class": "no-result hidden"})
+    # check = soup.find_all("ul", {"class": "credit-info-results public-results-left item-template"})
+
+    # url = 'http://www.creditchina.gov.cn/api/credit_info_search?keyword=912101127157655762&templateId=&page=1&pageSize=10'
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'}
     data = requests.get(url, headers=headers)
+    # data = requests.get(
+    #     'http://www.creditchina.gov.cn/api/credit_info_search?keyword=91110000625906144E&templateId=&page=1&pageSize=10',
+    #     headers=headers)
     data1 = data.json()
     # print (data1)
     a = data1.get('data')
@@ -56,7 +63,7 @@ SELECT * FROM CheckedTaxationCode WHERE 'mark' = 1
 
 def process_data_after_interruption(data):
     # for i in range(3, len(data)):
-    for i in range(56640, len(data)):
+    for i in range(477725, len(data)):
         # print(i)
         # print(data[i])
         taxPersonCode = data[i][0]
@@ -188,6 +195,9 @@ def process_data(data):
 
             newtable.append(checkcode)
             newtable.append(zipCode)
+            # newtable.append(num1)
+            # newtable.append(num2)
+            # newtable.append(num3)
             newtable.append('0')
             # print(newtable)
 
@@ -226,21 +236,12 @@ if __name__ == '__main__':
     )
     cur = conn.cursor()
 
-    # cur.execute("DROP TABLE IF EXISTS CheckedTaxationCode")
-    # try:
-    #     cur.execute(sql_create)
-    # except:
-    #     print('Fail to create table CheckedTaxationCode!')
-    # # 需不需要提交到数据库执行？
-    # # conn.commit()
-
     cur.execute(sql_get)
     data = cur.fetchall()
     # print(len(data))
     # for i in range(20):
     process_data_after_interruption(data)
     print("Finished first round!")
-
 
     # 循环检查CheckedTaxationCode里mark为1的，重新跑
     # read CheckedTaxationCode, find all mark == 1, re-run
@@ -256,5 +257,3 @@ if __name__ == '__main__':
     cur.close()
     # 关闭数据库连接
     conn.close()
-    # Make sure to call server.stop() when you want to disconnect
-    server.stop() 
